@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Froom — Realtime Team Status</title>
+  <meta name="theme-color" content="#111827" />
+  <link rel="icon" href="data:," />
+  <style>
+    :root{
+      --bg:#0b1020; --bg2:#0d1226; --card:#121832; --sub:#0f1530;
+      --text:#e9efff; --muted:#9fb0cf; --brand:#6ea8fe; --border:#223057;
+      --green:#2bd67b; --amber:#ffbe55; --red:#ff5d5d;
+      --radius:14px; --rsm:10px; --shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,var(--bg),var(--bg2));color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    a{color:var(--brand)}
+    .shell{max-width:860px;margin:0 auto;padding:16px}
+    .header{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
+    .brand{display:flex;gap:10px;align-items:center;font-weight:800} .badgeLogo{font-size:26px}
+    .view{display:none} .view.active{display:block;animation:fade .18s ease-out}
+    @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin:10px 0}
+    .row{display:flex;gap:8px;align-items:center} .grow{flex:1}
+    input,select{width:100%;padding:12px;border-radius:var(--rsm);border:1px solid var(--border);background:#0a1024;color:var(--text)}
+    button{border:0;border-radius:12px;padding:12px 14px;background:var(--sub);color:#fff;font-weight:700;box-shadow:var(--shadow)}
+    button.primary{background:var(--brand)} button.ghost{background:transparent;border:1px solid var(--border)}
+    .toolbar{position:sticky;top:0;z-index:5; padding:8px; margin:-8px -8px 10px; background:linear-gradient(180deg,rgba(11,16,32,.95),rgba(11,16,32,.6));backdrop-filter:blur(10px);border-bottom:1px solid var(--border);border-top-left-radius:var(--radius);border-top-right-radius:var(--radius)}
+    .list{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+    .li{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--sub);border:1px solid var(--border);border-radius:12px;padding:12px}
+    .left{display:flex;align-items:center;gap:10px}
+    .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#0b1022;border:1px solid var(--border);font-weight:800}
+    .name{font-weight:800} .sub{color:var(--muted);font-size:12px}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);padding:8px 10px;border-radius:999px}
+    .dot{width:10px;height:10px;border-radius:50%}
+    .actions button{padding:8px 10px}
+    .lights button{flex:1}
+    .footer{margin:18px 0;color:var(--muted);font-size:12px;display:flex;gap:12px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="header">
+      <div class="brand"><span class="badgeLogo">🚦</span> Froom</div>
+      <div class="row" id="authRow" style="display:none;">
+        <button id="btnLogout" class="ghost">Logout</button>
+      </div>
+    </header>
+
+    <!-- LOGIN -->
+    <section id="viewLogin" class="view active card">
+      <h2>Sign in</h2>
+      <form id="loginForm">
+        <label>Practice code
+          <input id="practiceCode" placeholder="e.g. Z00085" required />
+        </label>
+        <label>Your display name
+          <input id="displayName" placeholder="e.g. dr quinn / mary reception" required />
+        </label>
+        <div class="row">
+          <button class="primary grow">Enter</button>
+        </div>
+        <p class="sub">Tip: anyone can update their own status or someone else’s from the Overview.</p>
+      </form>
+    </section>
+
+    <!-- OVERVIEW -->
+    <section id="viewOverview" class="view card">
+      <div class="toolbar row">
+        <input id="search" class="grow" placeholder="Search name or location…" />
+        <select id="filter">
+          <option value="">All</option>
+          <option value="free">Free</option>
+          <option value="busy">Busy</option>
+          <option value="dnd">Do Not Disturb</option>
+        </select>
+      </div>
+      <ul id="members" class="list"></ul>
+      <div id="empty" class="sub" style="display:none;padding:10px">No matches. Clear filters or search.</div>
+    </section>
+
+    <!-- MY STATUS -->
+    <section id="viewMe" class="view card">
+      <h2>My status</h2>
+      <div class="row lights">
+        <button data-me="free">🟢 Free</button>
+        <button data-me="busy">🟠 Busy</button>
+        <button data-me="dnd">🔴 DND</button>
+      </div>
+      <label>Location <input id="meLocation" placeholder="e.g. Room 3" /></label>
+      <label>Note <input id="meNote" placeholder="e.g. With patient until 10:30" /></label>
+      <div class="row"><button id="btnSaveMe" class="primary grow">Save</button><button id="btnClearNote" class="ghost">Clear note</button></div>
+    </section>
+
+    <!-- ACTIVITY -->
+    <section id="viewActivity" class="view card">
+      <h2>Activity</h2>
+      <ul id="activity" class="list"></ul>
+      <div class="sub" id="activityEmpty">No activity yet.</div>
+    </section>
+
+    <div class="footer">
+      <span>© <span id="year"></span> Froom</span>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+    </div>
+  </div>
+
+  <!-- Firebase (modular CDN) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, collection, doc, getDoc, setDoc, updateDoc,
+      onSnapshot, serverTimestamp, query, orderBy
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // 1) 🔧 PUT YOUR CONFIG HERE
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // 2) Init
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 3) Little helpers/state
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const initials = n => (n||'').split(' ').filter(Boolean).map(x=>x[0]).slice(0,2).join('').toUpperCase();
+    const slug = s => (s||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+    const ago = ms => { if(!ms) return ''; const s=Math.floor((Date.now()-ms)/1000); if(s<60) return s+"s ago"; const m=Math.floor(s/60); if(m<60) return m+"m ago"; const h=Math.floor(m/60); return h+"h ago"; };
+    const state = { practice:null, meId:null, meName:null, unsubM:null, unsubA:null, members:[], activity:[] };
+    $('#year').textContent = new Date().getFullYear();
+
+    // 4) Views
+    function show(viewId){
+      ['viewLogin','viewOverview','viewMe','viewActivity'].forEach(id=>$('#'+id).classList.remove('active'));
+      $('#'+viewId).classList.add('active');
+      $('#authRow').style.display = viewId==='viewLogin' ? 'none' : 'flex';
+    }
+
+    // 5) Firestore listeners
+    function listenMembers(){
+      if(state.unsubM) state.unsubM();
+      const qy = query(collection(db,'practices',state.practice,'members'), orderBy('role'), orderBy('name'));
+      state.unsubM = onSnapshot(qy, snap=>{
+        state.members = snap.docs.map(d=>({ id:d.id, ...d.data(), _ms:d.data().updatedAt?.toMillis?.() }));
+        renderMembers(); renderMe();
+      });
+    }
+    function listenActivity(){
+      if(state.unsubA) state.unsubA();
+      const col = collection(db,'practices',state.practice,'activity');
+      state.unsubA = onSnapshot(col, snap=>{
+        state.activity = snap.docs.map(d=>({ id:d.id, ...d.data(), _ms:d.data().ts?.toMillis?.() }))
+          .sort((a,b)=>b._ms-a._ms);
+        renderActivity();
+      });
+    }
+
+    // 6) Rendering
+    function statusDot(s){ return s==='free'?'var(--green)':s==='busy'?'var(--amber)':'var(--red)'; }
+
+    function renderMembers(){
+      const q=($('#search').value||'').toLowerCase(), filt=$('#filter').value;
+      const list=$('#members'); list.innerHTML="";
+      const items = state.members
+        .filter(m=>!filt || m.status===filt)
+        .filter(m=>!q || (m.name||'').includes(q) || (m.location||'').toLowerCase().includes(q));
+      $('#empty').style.display = items.length? 'none':'block';
+
+      items.forEach(m=>{
+        const li=document.createElement('li'); li.className='li';
+        li.innerHTML = `
+          <div class="left">
+            <div class="avatar">${initials(m.name)}</div>
+            <div>
+              <div class="name">${m.name}</div>
+              <div class="sub">${m.location||''}${m.location&&m.note?' • ':''}${m.note||''}${m._ms? ' • updated '+ago(m._ms):''}</div>
+            </div>
+          </div>
+          <div class="row actions">
+            <span class="pill"><span class="dot" style="background:${statusDot(m.status)}"></span><span>${m.status||'free'}</span></span>
+            <button data-id="${m.id}" data-act="free">🟢</button>
+            <button data-id="${m.id}" data-act="busy">🟠</button>
+            <button data-id="${m.id}" data-act="dnd">🔴</button>
+            <button data-id="${m.id}" data-act="note">✏️</button>
+          </div>`;
+        list.appendChild(li);
+      });
+    }
+
+    function renderMe(){
+      const me = state.members.find(x=>x.id===state.meId); if(!me) return;
+      $('#meLocation').value = me.location||''; $('#meNote').value = me.note||'';
+    }
+
+    function renderActivity(){
+      const ul=$('#activity'); ul.innerHTML='';
+      if(!state.activity.length){ $('#activityEmpty').style.display='block'; return; }
+      $('#activityEmpty').style.display='none';
+      state.activity.forEach(e=>{
+        const li=document.createElement('li'); li.className='li';
+        li.textContent = `${new Date(e._ms||Date.now()).toLocaleTimeString()} — ${e.msg}`;
+        ul.appendChild(li);
+      });
+    }
+
+    // 7) Writes
+    async function ensureMe(){
+      state.meId = slug(state.meName);
+      const meRef = doc(db,'practices',state.practice,'members',state.meId);
+      const snap = await getDoc(meRef);
+      if(!snap.exists()){
+        await setDoc(meRef,{
+          name: state.meName, role:'staff', status:'free', note:'', location:'',
+          createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: state.meName
+        });
+      }
+    }
+    async function log(msg){
+      const id = String(Date.now());
+      await setDoc(doc(db,'practices',state.practice,'activity',id), { msg, ts: serverTimestamp(), by: state.meName }, { merge:true });
+    }
+    async function updateMember(id, data){
+      await updateDoc(doc(db,'practices',state.practice,'members',id), { ...data, updatedAt: serverTimestamp(), updatedBy: state.meName });
+      await log(`${state.meName} set ${id} → ${data.status || 'updated'}`);
+      navigator.vibrate?.(15);
+    }
+
+    // 8) Events
+    $('#loginForm').addEventListener('submit', async e=>{
+      e.preventDefault();
+      state.practice = $('#practiceCode').value.trim().toUpperCase();
+      state.meName = $('#displayName').value.trim().toLowerCase();
+      if(!state.practice || !state.meName) return alert('Enter practice and name');
+
+      await signInAnonymously(auth);
+      await ensureMe();
+      listenMembers(); listenActivity();
+      show('viewOverview'); $('#viewMe').classList.add('active'); $('#viewActivity').classList.add('active');
+    });
+
+    $('#btnLogout').addEventListener('click',()=>location.reload());
+
+    // my status quick buttons
+    $$('[data-me]').forEach(b=>b.addEventListener('click', ()=> updateMember(state.meId, { status:b.dataset.me })));
+    $('#btnSaveMe').addEventListener('click', ()=> updateMember(state.meId, { location:$('#meLocation').value.trim(), note:$('#meNote').value.trim() }));
+    $('#btnClearNote').addEventListener('click', ()=> $('#meNote').value='');
+
+    // overview quick actions (update others)
+    $('#members').addEventListener('click', e=>{
+      const btn=e.target.closest('button'); if(!btn) return;
+      const id=btn.dataset.id, act=btn.dataset.act;
+      if(act==='note'){ const m=state.members.find(x=>x.id===id); const note=prompt(`Note for ${m?.name||id}`, m?.note||''); if(note!=null) updateMember(id,{note}); }
+      else updateMember(id,{status:act});
+    });
+
+    // filters
+    $('#search').addEventListener('input', renderMembers);
+    $('#filter').addEventListener('change', renderMembers);
+  </script>
+</body>
+</html>
