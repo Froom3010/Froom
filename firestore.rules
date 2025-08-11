@@ -1,0 +1,28 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Practice container doc (optionally holds passHash)
+    match /practices/{practiceCode} {
+      allow read: if true; // practice name & metadata is non-sensitive
+      allow write: if false; // prevent clients from editing base doc (set via console by admin)
+      
+      match /users/{userId} {
+        // Require logged-in (even anonymously) and only allow user to write to their own document,
+        // and they must not change practiceCode to escape their practice.
+        allow read: if request.auth != null && 
+                    exists(/databases/$(database)/documents/practices/$(practiceCode));
+        allow create, update, delete: if request.auth != null &&
+                    request.auth.uid == userId &&
+                    request.resource.data.practiceCode == practiceCode;
+      }
+      
+      match /activity/{activityId} {
+        allow read: if request.auth != null &&
+                    exists(/databases/$(database)/documents/practices/$(practiceCode));
+        allow create: if request.auth != null;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

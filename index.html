@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0d12"/>
+  <title>Froom</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Froom — live room & staff status for GP practices.">
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div id="login" class="loginWrap">
+    <div class="loginBrand">
+      <!-- Inline SVG logo -->
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#2ee59d"/>
+            <stop offset="1" stop-color="#4ea8ff"/>
+          </linearGradient>
+        </defs>
+        <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#g)"/>
+        <circle cx="24" cy="32" r="6" fill="#0b0d12"/>
+        <circle cx="40" cy="32" r="6" fill="#0b0d12" opacity="0.8"/>
+      </svg>
+      <h1>Froom</h1>
+      <div class="small">Live status for GP practices</div>
+    </div>
+    <div class="formRow">
+      <label>Practice Code (e.g., Z00xxx)</label>
+      <input id="practiceCode" placeholder="Enter practice code" autocomplete="organization" />
+    </div>
+    <div class="formRow">
+      <label>Your Name</label>
+      <input id="displayName" placeholder="Jane Doe" autocomplete="name" />
+    </div>
+    <div class="formRow">
+      <label>Role</label>
+      <select id="role">
+        <option value="Reception">Reception</option>
+        <option value="GP">GP</option>
+        <option value="Nurse">Nurse</option>
+        <option value="Manager">Manager</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="formRow">
+      <label>Practice Password (shared)</label>
+      <input id="practicePass" type="password" placeholder="••••••••" />
+    </div>
+    <div class="actions">
+      <button id="loginBtn" class="primary">Enter</button>
+    </div>
+    <footer>Froom • Config-ready build</footer>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="header">
+      <div class="brand">
+        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#2ee59d"/>
+              <stop offset="1" stop-color="#4ea8ff"/>
+            </linearGradient>
+          </defs>
+          <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#g2)"/>
+          <circle cx="24" cy="32" r="6" fill="#0b0d12"/>
+          <circle cx="40" cy="32" r="6" fill="#0b0d12" opacity="0.8"/>
+        </svg>
+        <h1>Froom</h1>
+      </div>
+      <div class="userChip"><span id="chipPractice"></span> • <span id="chipName"></span></div>
+    </header>
+
+    <div class="app">
+      <div class="tabs">
+        <button class="active" data-tab="overview">Overview</button>
+        <button data-tab="my">My Status</button>
+        <button data-tab="activity">Activity</button>
+      </div>
+
+      <div id="tab-overview">
+        <div class="card">
+          <h2>Team overview</h2>
+          <div class="helper">Live status for everyone in your practice.</div>
+          <div id="team" class="list"></div>
+          <div id="teamEmpty" class="small hidden">No users yet. Share your practice code so colleagues can join.</div>
+        </div>
+      </div>
+
+      <div id="tab-my" class="hidden">
+        <div class="card">
+          <h2>My status</h2>
+          <div class="formRow">
+            <label>Availability</label>
+            <select id="myAvail">
+              <option value="free">Free</option>
+              <option value="busy">Busy</option>
+              <option value="dnd">Do Not Disturb</option>
+            </select>
+          </div>
+          <div class="formRow">
+            <label>Activity</label>
+            <select id="myActivity">
+              <option>Active now</option>
+              <option>In clinic</option>
+              <option>On calls</option>
+              <option>Break</option>
+              <option>Off site</option>
+            </select>
+          </div>
+          <div class="formRow">
+            <label>Location</label>
+            <input id="myLocation" placeholder="Room 1, Front desk, etc." />
+          </div>
+          <div class="formRow">
+            <label>Note</label>
+            <textarea id="myNote" placeholder="Optional note for colleagues"></textarea>
+          </div>
+          <div class="actions">
+            <button id="saveBtn" class="primary">Save</button>
+            <button id="clearBtn" class="ghost">Clear note</button>
+            <button id="logoutBtn" class="ghost">Log out</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-activity" class="hidden">
+        <div class="card">
+          <h2>Activity</h2>
+          <div class="helper">Recent status changes across your practice.</div>
+          <div id="activity" class="list"></div>
+          <div id="activityEmpty" class="small hidden">No activity yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>Froom • Live status • v1.0</footer>
+  </div>
+
+  <script>
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js'); }
+  </script>
+</body>
+</html>
