@@ -13,13 +13,15 @@
  */
 
 // 1) Paste your Firebase config here
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "PASTE_HERE",
-  authDomain: "PASTE_HERE.firebaseapp.com",
-  projectId: "PASTE_HERE",
-  storageBucket: "PASTE_HERE.appspot.com",
-  messagingSenderId: "PASTE_HERE",
-  appId: "PASTE_HERE"
+  apiKey: "AIzaSyBF6Nqx8NnYwtus7pTILOI8I6PgPef7MCY",
+  authDomain: "froom-d30e4.firebaseapp.com",
+  projectId: "froom-d30e4",
+  storageBucket: "froom-d30e4.firebasestorage.app",
+  messagingSenderId: "1050713519645",
+  appId: "1:1050713519645:web:108e7f18fafda3f79338f4",
+  measurementId: "G-015SBP02GW"
 };
 
 // 2) Optional: set a shared practice password (per practice) in Firestore under /practices/{code}.passHash
