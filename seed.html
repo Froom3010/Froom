@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Froom • Seed Firestore</title>
+  <style>
+    body{font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; padding:20px; max-width:700px; margin:auto; background:#0b0d12; color:#e9edf3;}
+    .card{background:#0e1424; border:1px solid rgba(255,255,255,.08); padding:16px; border-radius:12px;}
+    input,button,textarea{padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.08); background:#0c1220; color:#e9edf3; width:100%;}
+    button{cursor:pointer; background:#18243a;}
+    .row{display:grid; gap:10px; margin:10px 0;}
+    small{color:#9aa3b2;}
+    .ok{color:#8ef0b8;}
+    .err{color:#ffb4b4;}
+    pre{white-space:pre-wrap; word-break:break-word; background:#0c1220; padding:10px; border-radius:8px;}
+  </style>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <h1>Froom — Seed Firestore</h1>
+  <p>Use this once to create two practices and sample users. Delete this file afterwards.</p>
+
+  <div class="card">
+    <h3>Step 1 — Paste your Firebase config</h3>
+    <small>From Firebase Console → Project settings → Your apps → Web app</small>
+    <textarea id="config" rows="8" placeholder='{
+  "apiKey": "...",
+  "authDomain": "...",
+  "projectId": "...",
+  "storageBucket": "...",
+  "messagingSenderId": "...",
+  "appId": "..."
+}'></textarea>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <h3>Step 2 — Practices & users</h3>
+    <div class="row">
+      <input id="p1" placeholder="Practice code 1 e.g. Z00123" />
+      <input id="p2" placeholder="Practice code 2 e.g. Z00999" />
+    </div>
+    <div class="row">
+      <textarea id="users" rows="8" placeholder='[
+  {"practice":"Z00123","name":"Dr. Smith","role":"GP","availability":"free","activity":"In clinic","location":"Room 1","note":""},
+  {"practice":"Z00123","name":"Reception 1","role":"Reception","availability":"busy","activity":"On calls","location":"Front desk","note":"Call backlog"},
+  {"practice":"Z00999","name":"Nurse Anne","role":"Nurse","availability":"dnd","activity":"Clinic","location":"Room 4","note":"Vaccinations"}
+]'></textarea>
+    </div>
+    <button id="seedBtn">Create Sample Data</button>
+  </div>
+
+  <div id="out" class="card" style="margin-top:12px; display:none;">
+    <h3>Output</h3>
+    <pre id="log"></pre>
+  </div>
+
+<script>
+function log(s){ const o=document.getElementById('out'); o.style.display='block'; const l=document.getElementById('log'); l.textContent += s + "\\n"; }
+function parseConfig(text){ try { return JSON.parse(text); } catch(e){ return null; } }
+
+document.getElementById('seedBtn').addEventListener('click', async () => {
+  const cfg = parseConfig(document.getElementById('config').value.trim());
+  if(!cfg){ alert('Paste a valid firebaseConfig JSON first.'); return; }
+  firebase.initializeApp(cfg);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  await auth.signInAnonymously();
+  log('Signed in anonymously.');
+
+  const p1 = document.getElementById('p1').value.trim().toUpperCase();
+  const p2 = document.getElementById('p2').value.trim().toUpperCase();
+  const users = JSON.parse(document.getElementById('users').value.trim() || '[]');
+
+  for(const code of [p1,p2]){
+    if(!code) continue;
+    await db.collection('practices').doc(code).set({ name: code, createdAt: Date.now() }, { merge: true });
+    log('Created/updated practice: ' + code);
+  }
+
+  for(const u of users){
+    if(!u.practice || !u.name) continue;
+    const practice = u.practice.toUpperCase();
+    const docRef = db.collection('practices').doc(practice).collection('users').doc();
+    await docRef.set({
+      displayName: u.name,
+      role: u.role || 'Other',
+      practiceCode: practice,
+      availability: u.availability || 'free',
+      activity: u.activity || 'Active now',
+      location: u.location || '',
+      note: u.note || '',
+      lastActive: Date.now()
+    }, { merge:true });
+    log('Added user: ' + u.name + ' → ' + practice);
+  }
+
+  log('\\nDone. Open your main app and log into each practice to see live status.');
+});
+</script>
+</body>
+</html>
